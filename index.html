@@ -4,17 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CFG Simplifier</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* Modern Color Palette & Variables */
         :root {
-            --primary: #4f46e5;       /* Indigo */
-            --primary-hover: #4338ca;
-            --bg: #f3f4f6;            /* Soft Gray Background */
+            --primary: #6366f1;       /* Indigo */
+            --secondary: #ec4899;     /* Pink */
+            --bg-page: #f8fafc;
             --card-bg: #ffffff;
-            --text-main: #1f2937;
-            --text-muted: #6b7280;
-            --code-bg: #f8fafc;
-            --code-border: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --code-bg: #1e293b;       /* Dark slate for grammar */
+            --code-text: #f8fafc;
         }
 
         * {
@@ -24,135 +24,165 @@
         }
 
         body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: var(--bg);
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
             color: var(--text-main);
             line-height: 1.6;
-            padding: 2rem 1rem;
+            padding: 3rem 1rem;
+            min-height: 100vh;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 850px;
             margin: 0 auto;
         }
 
         header {
             text-align: center;
-            margin-bottom: 2.5rem;
+            margin-bottom: 3rem;
         }
 
         header h1 {
-            font-size: 2.5rem;
-            color: var(--primary);
+            font-size: 3rem;
+            font-weight: 700;
+            /* Gorgeous Gradient Text */
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            color: transparent;
             margin-bottom: 0.5rem;
-            letter-spacing: -0.02em;
+            letter-spacing: -0.03em;
         }
 
         header p {
             color: var(--text-muted);
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            font-weight: 500;
         }
 
         /* Input Section Styling */
         .input-section {
             background: var(--card-bg);
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            margin-bottom: 2rem;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            margin-bottom: 3rem;
+            border: 1px solid #e2e8f0;
         }
 
         textarea {
             width: 100%;
             height: 160px;
-            padding: 1rem;
-            font-family: 'Courier New', Courier, monospace;
+            padding: 1.25rem;
+            font-family: 'JetBrains Mono', monospace;
             font-size: 1.05rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
             resize: vertical;
-            margin-bottom: 1.25rem;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
-            background-color: #fafafa;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            background-color: #f8fafc;
+            color: var(--text-main);
         }
 
         textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
             background-color: #fff;
         }
 
         button {
-            background-color: var(--primary);
+            background: linear-gradient(to right, var(--primary), #818cf8);
             color: white;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            padding: 0.85rem 1.5rem;
+            padding: 1rem 2rem;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
             width: 100%;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
         }
 
         button:hover {
-            background-color: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px -2px rgba(99, 102, 241, 0.4);
+            background: linear-gradient(to right, var(--primary), var(--secondary));
         }
 
         button:active {
-            transform: translateY(2px);
+            transform: translateY(0);
         }
 
         /* Styles for the JS-generated Step Cards */
         .step-card {
             background: var(--card-bg);
-            padding: 1.75rem;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            margin-bottom: 1.5rem;
-            border-left: 6px solid var(--primary);
-            animation: slideIn 0.4s ease-out forwards;
-            opacity: 0; /* Starts hidden for the animation */
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border-top: 5px solid var(--primary);
+            animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
         }
 
-        /* Stagger the animations so they appear one after the other */
-        .step-card:nth-child(1) { animation-delay: 0.1s; }
-        .step-card:nth-child(2) { animation-delay: 0.2s; }
-        .step-card:nth-child(3) { animation-delay: 0.3s; }
-        .step-card:nth-child(4) { animation-delay: 0.4s; }
+        .step-card:nth-child(1) { animation-delay: 0.1s; border-top-color: #6366f1; } /* Indigo */
+        .step-card:nth-child(2) { animation-delay: 0.2s; border-top-color: #8b5cf6; } /* Violet */
+        .step-card:nth-child(3) { animation-delay: 0.3s; border-top-color: #d946ef; } /* Fuchsia */
+        .step-card:nth-child(4) { animation-delay: 0.4s; border-top-color: #ec4899; } /* Pink */
 
         .step-card h2 {
-            font-size: 1.35rem;
-            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
             color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .step-card .explanation {
-            font-size: 0.95rem;
+        /* Styling the explanation text and JS generated HTML */
+        .explanation {
+            font-size: 1.05rem;
             color: var(--text-muted);
-            margin-bottom: 1.25rem;
-            font-style: italic;
+            margin-bottom: 1.5rem;
+            line-height: 1.7;
         }
 
+        /* Turning your JS <b> tags into pill badges */
+        .explanation b {
+            display: inline-block;
+            background: #e0e7ff;
+            color: var(--primary);
+            padding: 0.1rem 0.6rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95em;
+            margin: 0.2rem 0;
+        }
+
+        .explanation i {
+            color: #94a3b8;
+            font-size: 0.95em;
+        }
+
+        /* Dark Mode Terminal Look for the Grammar */
         .grammar-display {
             background-color: var(--code-bg);
-            border: 1px solid var(--code-border);
-            padding: 1.25rem;
-            border-radius: 8px;
-            font-family: 'Courier New', Courier, monospace;
+            color: var(--code-text);
+            padding: 1.5rem;
+            border-radius: 10px;
+            font-family: 'JetBrains Mono', monospace;
             white-space: pre-wrap;
-            font-size: 1.1rem;
-            color: #0f172a;
-            line-height: 1.5;
-            font-weight: 500;
+            font-size: 1.15rem;
+            line-height: 1.6;
+            border-left: 4px solid var(--primary);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+            overflow-x: auto;
         }
 
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(15px);
-            }
+        @keyframes slideUp {
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -164,12 +194,20 @@
     <div class="container">
         <header>
             <h1>CFG Simplifier</h1>
-            <p>Enter your Context-Free Grammar to eliminate Null, Unit, and Useless productions.</p>
+            <p>Automated Context-Free Grammar Simplification</p>
         </header>
 
         <main>
             <section class="input-section">
-                <textarea id="grammar-input" placeholder="Format example:&#10;S -> A B | a&#10;A -> b&#10;B -> b | c&#10;C -> c&#10;D -> d&#10;&#10;Use 'e' for epsilon/null productions."></textarea>
+                <textarea id="grammar-input" placeholder="Format example:
+S -> A B | a
+A -> b
+B -> b | c
+
+Use 'e' for epsilon/null productions.">S -> AB | a
+A -> BC | b
+B -> aB | C
+C -> aC | B | e</textarea>
                 <button onclick="processGrammar()">Simplify Grammar</button>
             </section>
 
