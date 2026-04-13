@@ -45,7 +45,6 @@
         header h1 {
             font-size: 3rem;
             font-weight: 700;
-            /* Gorgeous Gradient Text */
             background: linear-gradient(to right, var(--primary), var(--secondary));
             -webkit-background-clip: text;
             color: transparent;
@@ -59,7 +58,6 @@
             font-weight: 500;
         }
 
-        /* Input Section Styling */
         .input-section {
             background: var(--card-bg);
             padding: 2.5rem;
@@ -71,14 +69,14 @@
 
         textarea {
             width: 100%;
-            height: 160px;
+            height: 180px;
             padding: 1.25rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 1.05rem;
             border: 2px solid #e2e8f0;
             border-radius: 10px;
             resize: vertical;
-            margin-bottom: 1.5rem;
+            margin-bottom: 0.5rem; 
             transition: all 0.3s ease;
             background-color: #f8fafc;
             color: var(--text-main);
@@ -89,6 +87,25 @@
             border-color: var(--primary);
             box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
             background-color: #fff;
+        }
+
+        .helper-text {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            padding-left: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .helper-text code {
+            background: #e0e7ff;
+            color: var(--primary);
+            padding: 0.1rem 0.4rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
         }
 
         button {
@@ -111,11 +128,6 @@
             background: linear-gradient(to right, var(--primary), var(--secondary));
         }
 
-        button:active {
-            transform: translateY(0);
-        }
-
-        /* Styles for the JS-generated Step Cards */
         .step-card {
             background: var(--card-bg);
             padding: 2rem;
@@ -128,21 +140,10 @@
             transform: translateY(20px);
         }
 
-        .step-card:nth-child(1) { animation-delay: 0.1s; border-top-color: #6366f1; } /* Indigo */
-        .step-card:nth-child(2) { animation-delay: 0.2s; border-top-color: #8b5cf6; } /* Violet */
-        .step-card:nth-child(3) { animation-delay: 0.3s; border-top-color: #d946ef; } /* Fuchsia */
-        .step-card:nth-child(4) { animation-delay: 0.4s; border-top-color: #ec4899; } /* Pink */
+        .step-card:nth-child(1) { animation-delay: 0.1s; border-top-color: #6366f1; }
+        .step-card:nth-child(2) { animation-delay: 0.2s; border-top-color: #8b5cf6; }
+        .step-card:nth-child(3) { animation-delay: 0.3s; border-top-color: #ec4899; }
 
-        .step-card h2 {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        /* Styling the explanation text and JS generated HTML */
         .explanation {
             font-size: 1.05rem;
             color: var(--text-muted);
@@ -150,7 +151,6 @@
             line-height: 1.7;
         }
 
-        /* Turning your JS <b> tags into pill badges */
         .explanation b {
             display: inline-block;
             background: #e0e7ff;
@@ -158,16 +158,8 @@
             padding: 0.1rem 0.6rem;
             border-radius: 6px;
             font-weight: 600;
-            font-size: 0.95em;
-            margin: 0.2rem 0;
         }
 
-        .explanation i {
-            color: #94a3b8;
-            font-size: 0.95em;
-        }
-
-        /* Dark Mode Terminal Look for the Grammar */
         .grammar-display {
             background-color: var(--code-bg);
             color: var(--code-text);
@@ -176,17 +168,11 @@
             font-family: 'JetBrains Mono', monospace;
             white-space: pre-wrap;
             font-size: 1.15rem;
-            line-height: 1.6;
             border-left: 4px solid var(--primary);
-            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-            overflow-x: auto;
         }
 
         @keyframes slideUp {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
@@ -194,27 +180,30 @@
     <div class="container">
         <header>
             <h1>CFG Simplifier</h1>
-            <p>Automated Context-Free Grammar Simplification</p>
+            <p>Automated Context-Free Grammar Optimization</p>
         </header>
 
         <main>
             <section class="input-section">
                 <textarea id="grammar-input" placeholder="Format example:
-S -> A B | a
+S -> AB | a
 A -> b
-B -> b | c
+B -> b | c">S -> AB | AC
+A -> aAb | bAa | a
+B -> bbA | aaB | AB
+C -> abCA | aDb
+D -> bD | aC</textarea>
+                
+                <div class="helper-text">
+                    💡 Use <code>eps</code> or <code>ε</code> to denote epsilon/null productions.
+                </div>
 
-Use 'e' for epsilon/null productions.">S -> AB | a
-A -> BC | b
-B -> aB | C
-C -> aC | B | e</textarea>
                 <button onclick="processGrammar()">Simplify Grammar</button>
             </section>
 
             <section id="visualization"></section>
         </main>
     </div>
-    
     <script src="script.js"></script>
 </body>
 </html>

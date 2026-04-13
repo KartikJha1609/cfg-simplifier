@@ -1,26 +1,26 @@
 function processGrammar() {
     const input = document.getElementById('grammar-input').value;
     const visualization = document.getElementById('visualization');
-    visualization.innerHTML = ""; // Clear previous results
+    visualization.innerHTML = ""; 
 
     let grammar = parseGrammar(input);
     
-    // Step 1: Eliminate Null Productions
+    
     const step1 = eliminateNull(grammar);
     displayStep("Step 1: Eliminate Null Productions (ε)", step1.explanation, step1.rules);
     grammar = step1.rules;
 
-    // Step 2: Eliminate Unit Productions
+    
     const step2 = eliminateUnit(grammar);
     displayStep("Step 2: Eliminate Unit Productions", step2.explanation, step2.rules);
     grammar = step2.rules;
 
-    // Step 3: Eliminate Useless Symbols
+    
     const step3 = eliminateUseless(grammar);
     displayStep("Step 3: Eliminate Useless Symbols", step3.explanation, step3.rules);
     grammar = step3.rules;
 
-    // Final Result
+    
     displayStep("Final Simplified Grammar", "All 3 simplification steps are complete. Here is your final, clean Context-Free Grammar.", grammar);
 }
 
@@ -57,27 +57,25 @@ function displayStep(title, explanation, grammar) {
     container.appendChild(card);
 }
 
-// Helper function to strictly enforce that Uppercase letters are Variables
 function isVariable(char) {
     return /[A-Z]/.test(char);
 }
 
-// --- LOGIC FUNCTIONS WITH REASONING ---
-
-// --- LOGIC FUNCTIONS WITH REASONING ---
-
 function eliminateNull(grammar) {
     let nullable = new Set();
     
-    // Find direct nullables
     for (let lhs in grammar) {
-        if (grammar[lhs].has('e')) {
+        if (grammar[lhs].has('eps')) {
             nullable.add(lhs);
-            grammar[lhs].delete('e');
+            grammar[lhs].delete('eps');
+        }
+        if (grammar[lhs].has('ε')) {
+            nullable.add(lhs);
+            grammar[lhs].delete('ε');
         }
     }
 
-    // Find indirect nullables
+
     let added = true;
     while (added) {
         added = false;
@@ -97,7 +95,7 @@ function eliminateNull(grammar) {
     for (let lhs in grammar) {
         let newProds = new Set();
         grammar[lhs].forEach(prod => {
-            if (prod === 'e') return;
+            if (prod === 'eps' || prod === 'ε') return;
 
             let chars = prod.split('');
             let nullableIndices = [];
@@ -132,7 +130,6 @@ function eliminateNull(grammar) {
         }
     }
 
-    // UPDATED EXPLANATION LOGIC
     let explanation = "";
     if (nullable.size === 0) {
         explanation = "No changes needed at this step as there are no nullable variables.";
@@ -148,7 +145,7 @@ function eliminateNull(grammar) {
         }
 
         explanation = `<b>Identified nullable variables:</b> [ ${Array.from(nullable).join(', ')} ]<br>`;
-        explanation += `Removed 'e' productions and generated combinations.<br>`;
+        explanation += `Removed epsilon ('eps' / 'ε') productions and generated combinations.<br>`;
         if (addedNullProds.length > 0) {
             explanation += `<br><b>Compensation productions added:</b> [ ${addedNullProds.join(', ')} ]`;
         }
@@ -163,7 +160,7 @@ function eliminateUnit(grammar) {
     let unitsFound = false;
     let directUnits = [];
 
-    // Document direct units
+    
     variables.forEach(A => {
         if (grammar[A]) {
             grammar[A].forEach(prod => {
@@ -175,7 +172,7 @@ function eliminateUnit(grammar) {
         }
     });
 
-    // Phase 1: Map reachable
+    
     let unitPairs = {};
     variables.forEach(A => {
         unitPairs[A] = new Set([A]); 
@@ -196,7 +193,7 @@ function eliminateUnit(grammar) {
         }
     });
 
-    // Phase 2: Rebuild grammar
+    
     variables.forEach(A => {
         newGrammar[A] = new Set();
         unitPairs[A].forEach(B => {
@@ -216,12 +213,11 @@ function eliminateUnit(grammar) {
         }
     }
 
-    // UPDATED EXPLANATION LOGIC
     let explanation = "";
     if (!unitsFound) {
         explanation = "No changes needed at this step as there are no unit productions.";
     } else {
-        // Calculate compensation productions added
+        
         let addedUnitProds = [];
         for (let lhs in newGrammar) {
             newGrammar[lhs].forEach(prod => {
@@ -257,7 +253,7 @@ function eliminateUseless(grammar) {
         });
     }
 
-    // Part 1: Non-Generating
+    
     let generating = new Set();
     let added = true;
     while (added) {
@@ -290,7 +286,7 @@ function eliminateUseless(grammar) {
         }
     }
 
-    // Part 2: Unreachable
+    
     let reachable = new Set(['S']); 
     let queue = ['S'];
     while (queue.length > 0) {
@@ -312,7 +308,7 @@ function eliminateUseless(grammar) {
         if (step1Grammar[lhs]) finalGrammar[lhs] = step1Grammar[lhs];
     });
 
-    // UPDATED EXPLANATION LOGIC
+    
     let generatingArr = Array.from(generating);
     let nonGeneratingArr = Array.from(allVars).filter(v => !generating.has(v));
     let step1Vars = new Set(Object.keys(step1Grammar));
@@ -323,7 +319,7 @@ function eliminateUseless(grammar) {
     if (nonGeneratingArr.length === 0 && nonReachableArr.length === 0) {
         explanation = "No changes needed at this step as there are no useless symbols.";
     } else {
-        // Calculate exactly what was removed
+        
         let removedUselessProds = [];
         for (let lhs in grammar) {
             grammar[lhs].forEach(prod => {
