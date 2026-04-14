@@ -1,3 +1,19 @@
+function insertEpsilon() {
+    const textarea = document.getElementById('grammar-input');
+    if (!textarea) {
+        console.error("Could not find textarea with ID 'grammar-input'");
+        return;
+    }
+    const cursorPos = textarea.selectionStart;
+    const textBefore = textarea.value.substring(0, cursorPos);
+    const textAfter = textarea.value.substring(textarea.selectionEnd);
+    
+    textarea.value = textBefore + 'ε' + textAfter;
+    
+    // Put the cursor back after the ε
+    textarea.selectionStart = textarea.selectionEnd = cursorPos + 1;
+    textarea.focus();
+}
 function processGrammar() {
     const input = document.getElementById('grammar-input').value;
     const visualization = document.getElementById('visualization');
@@ -5,22 +21,21 @@ function processGrammar() {
 
     let grammar = parseGrammar(input);
     
-    
+    // Step 1: Null
     const step1 = eliminateNull(grammar);
     displayStep("Step 1: Eliminate Null Productions (ε)", step1.explanation, step1.rules);
     grammar = step1.rules;
 
-    
+    // Step 2: Unit
     const step2 = eliminateUnit(grammar);
     displayStep("Step 2: Eliminate Unit Productions", step2.explanation, step2.rules);
     grammar = step2.rules;
 
-    
+    // Step 3: Useless
     const step3 = eliminateUseless(grammar);
     displayStep("Step 3: Eliminate Useless Symbols", step3.explanation, step3.rules);
     grammar = step3.rules;
 
-    
     displayStep("Final Simplified Grammar", "All 3 simplification steps are complete. Here is your final, clean Context-Free Grammar.", grammar);
 }
 
@@ -29,7 +44,9 @@ function parseGrammar(text) {
     const grammar = {};
     lines.forEach(line => {
         if (!line.trim()) return;
-        let [lhs, rhs] = line.split('->').map(s => s.trim());
+        // Supports both -> and →
+        let delimiter = line.includes('->') ? '->' : '→';
+        let [lhs, rhs] = line.split(delimiter).map(s => s.trim());
         if (!grammar[lhs]) grammar[lhs] = new Set();
         rhs.split('|').forEach(prod => grammar[lhs].add(prod.trim()));
     });
@@ -63,26 +80,27 @@ function isVariable(char) {
 
 function eliminateNull(grammar) {
     let nullable = new Set();
-    
+    let originalStart = Object.keys(grammar)[0];
+    let startOnRHS = false;
+
+    // Identify if Start Symbol appears on RHS anywhere
     for (let lhs in grammar) {
-        if (grammar[lhs].has('eps')) {
-            nullable.add(lhs);
-            grammar[lhs].delete('eps');
-        }
-        if (grammar[lhs].has('ε')) {
-            nullable.add(lhs);
-            grammar[lhs].delete('ε');
+        for (let prod of grammar[lhs]) {
+            if (prod.includes(originalStart)) startOnRHS = true;
+            if (grammar[lhs].has('eps') || grammar[lhs].has('ε')) {
+                nullable.add(lhs);
+            }
         }
     }
 
-
+    // Fixed Nullable Identification (Transitive)
     let added = true;
     while (added) {
         added = false;
         for (let lhs in grammar) {
             if (nullable.has(lhs)) continue;
             for (let prod of grammar[lhs]) {
-                if (prod.split('').every(char => nullable.has(char))) {
+                if (prod !== 'ε' && prod !== 'eps' && prod.split('').every(char => nullable.has(char))) {
                     nullable.add(lhs);
                     added = true;
                     break;
@@ -96,62 +114,72 @@ function eliminateNull(grammar) {
         let newProds = new Set();
         grammar[lhs].forEach(prod => {
             if (prod === 'eps' || prod === 'ε') return;
-
             let chars = prod.split('');
             let nullableIndices = [];
-            
             for (let i = 0; i < chars.length; i++) {
-                if (nullable.has(chars[i])) {
-                    nullableIndices.push(i);
-                }
+                if (nullable.has(chars[i])) nullableIndices.push(i);
             }
 
             let totalCombos = 1 << nullableIndices.length; 
             for (let i = 0; i < totalCombos; i++) {
                 let current = "";
                 for (let j = 0; j < chars.length; j++) {
-                    let isNullableIndex = nullableIndices.indexOf(j);
-                    if (isNullableIndex !== -1) {
-                        if ((i & (1 << isNullableIndex)) === 0) {
-                            current += chars[j];
-                        }
+                    let isNullableIdx = nullableIndices.indexOf(j);
+                    if (isNullableIdx !== -1) {
+                        if ((i & (1 << isNullableIdx)) === 0) current += chars[j];
                     } else {
                         current += chars[j];
                     }
                 }
-                if (current !== "") {
-                    newProds.add(current);
-                }
+                if (current !== "") newProds.add(current);
             }
         });
-        
-        if (newProds.size > 0) {
-            newGrammar[lhs] = newProds;
-        }
+        if (newProds.size > 0) newGrammar[lhs] = newProds;
     }
 
     let explanation = "";
+    let finalRules = {};
+
     if (nullable.size === 0) {
         explanation = "No changes needed at this step as there are no nullable variables.";
+        finalRules = newGrammar;
     } else {
-        // Calculate compensation productions added
         let addedNullProds = [];
+        let specialRuleMsg = "";
+
+        // S -> ε Handling Logic
+        if (nullable.has(originalStart)) {
+            if (startOnRHS) {
+                let newStart = originalStart + "0";
+                finalRules[newStart] = new Set([originalStart, 'ε']);
+                specialRuleMsg = `<br><i style="color: #ec4899;"><b>Special Rule:</b> ${originalStart} is nullable and appears on RHS. Created new start symbol ${newStart} -> ${originalStart} | ε.</i>`;
+            } else {
+                if (!newGrammar[originalStart]) newGrammar[originalStart] = new Set();
+                newGrammar[originalStart].add('ε');
+                specialRuleMsg = `<br><i><b>Note:</b> ${originalStart} is nullable but not on RHS. ε preserved in original start symbol.</i>`;
+            }
+        }
+        
+        // Merge remaining rules
+        for (let lhs in newGrammar) finalRules[lhs] = newGrammar[lhs];
+
+        // Compensation tracking for explanation
         for (let lhs in newGrammar) {
             newGrammar[lhs].forEach(prod => {
-                if (!grammar[lhs].has(prod)) {
+                if (!grammar[lhs] || !grammar[lhs].has(prod)) {
                     addedNullProds.push(`${lhs} -> ${prod}`);
                 }
             });
         }
 
         explanation = `<b>Identified nullable variables:</b> [ ${Array.from(nullable).join(', ')} ]<br>`;
-        explanation += `Removed epsilon ('eps' / 'ε') productions and generated combinations.<br>`;
+        explanation += `Removed epsilon productions and generated combinations.${specialRuleMsg}`;
         if (addedNullProds.length > 0) {
-            explanation += `<br><b>Compensation productions added:</b> [ ${addedNullProds.join(', ')} ]`;
+            explanation += `<br><br><b>Compensation productions added:</b> [ ${addedNullProds.join(', ')} ]`;
         }
     }
 
-    return { rules: newGrammar, explanation: explanation };
+    return { rules: finalRules, explanation: explanation };
 }
 
 function eliminateUnit(grammar) {
@@ -160,7 +188,6 @@ function eliminateUnit(grammar) {
     let unitsFound = false;
     let directUnits = [];
 
-    
     variables.forEach(A => {
         if (grammar[A]) {
             grammar[A].forEach(prod => {
@@ -172,12 +199,10 @@ function eliminateUnit(grammar) {
         }
     });
 
-    
     let unitPairs = {};
     variables.forEach(A => {
         unitPairs[A] = new Set([A]); 
         let queue = [A];
-        
         while (queue.length > 0) {
             let curr = queue.shift();
             if (grammar[curr]) {
@@ -193,13 +218,13 @@ function eliminateUnit(grammar) {
         }
     });
 
-    
     variables.forEach(A => {
         newGrammar[A] = new Set();
         unitPairs[A].forEach(B => {
             if (grammar[B]) {
                 grammar[B].forEach(prod => {
-                    if (!(prod.length === 1 && isVariable(prod))) {
+                    // Don't add unit productions or self-loops (A -> A)
+                    if (!(prod.length === 1 && isVariable(prod)) && prod !== A) {
                         newGrammar[A].add(prod);
                     }
                 });
@@ -207,17 +232,12 @@ function eliminateUnit(grammar) {
         });
     });
 
-    for (let lhs in newGrammar) {
-        if (newGrammar[lhs].size === 0) {
-            delete newGrammar[lhs];
-        }
-    }
+    for (let lhs in newGrammar) if (newGrammar[lhs].size === 0) delete newGrammar[lhs];
 
     let explanation = "";
     if (!unitsFound) {
         explanation = "No changes needed at this step as there are no unit productions.";
     } else {
-        
         let addedUnitProds = [];
         for (let lhs in newGrammar) {
             newGrammar[lhs].forEach(prod => {
@@ -244,16 +264,15 @@ function eliminateUnit(grammar) {
 }
 
 function eliminateUseless(grammar) {
+    let startSymbol = Object.keys(grammar)[0];
     let allVars = new Set(Object.keys(grammar));
     for (let lhs in grammar) {
         grammar[lhs].forEach(prod => {
-            prod.split('').forEach(char => {
-                if (isVariable(char)) allVars.add(char);
-            });
+            prod.split('').forEach(char => { if (isVariable(char)) allVars.add(char); });
         });
     }
 
-    
+    // Phase 1: Generating
     let generating = new Set();
     let added = true;
     while (added) {
@@ -261,8 +280,8 @@ function eliminateUseless(grammar) {
         for (let lhs in grammar) {
             if (generating.has(lhs)) continue;
             for (let prod of grammar[lhs]) {
-                let isGenerating = prod.split('').every(char => !isVariable(char) || generating.has(char));
-                if (isGenerating) {
+                let isGen = prod.split('').every(char => !isVariable(char) || generating.has(char) || char === 'ε');
+                if (isGen) {
                     generating.add(lhs);
                     added = true;
                     break;
@@ -274,21 +293,18 @@ function eliminateUseless(grammar) {
     let step1Grammar = {};
     for (let lhs in grammar) {
         if (!generating.has(lhs)) continue; 
-        
         let newProds = new Set();
         grammar[lhs].forEach(prod => {
-            if (prod.split('').every(char => !isVariable(char) || generating.has(char))) {
+            if (prod.split('').every(char => !isVariable(char) || generating.has(char) || char === 'ε')) {
                 newProds.add(prod);
             }
         });
-        if (newProds.size > 0) {
-            step1Grammar[lhs] = newProds;
-        }
+        if (newProds.size > 0) step1Grammar[lhs] = newProds;
     }
 
-    
-    let reachable = new Set(['S']); 
-    let queue = ['S'];
+    // Phase 2: Reachable
+    let reachable = new Set([startSymbol]); 
+    let queue = [startSymbol];
     while (queue.length > 0) {
         let curr = queue.shift();
         if (step1Grammar[curr]) {
@@ -304,22 +320,15 @@ function eliminateUseless(grammar) {
     }
 
     let finalGrammar = {};
-    reachable.forEach(lhs => {
-        if (step1Grammar[lhs]) finalGrammar[lhs] = step1Grammar[lhs];
-    });
+    reachable.forEach(lhs => { if (step1Grammar[lhs]) finalGrammar[lhs] = step1Grammar[lhs]; });
 
-    
-    let generatingArr = Array.from(generating);
     let nonGeneratingArr = Array.from(allVars).filter(v => !generating.has(v));
-    let step1Vars = new Set(Object.keys(step1Grammar));
-    let reachableArr = Array.from(reachable);
-    let nonReachableArr = Array.from(step1Vars).filter(v => !reachable.has(v));
+    let nonReachableArr = Array.from(Object.keys(step1Grammar)).filter(v => !reachable.has(v));
 
     let explanation = "";
     if (nonGeneratingArr.length === 0 && nonReachableArr.length === 0) {
         explanation = "No changes needed at this step as there are no useless symbols.";
     } else {
-        
         let removedUselessProds = [];
         for (let lhs in grammar) {
             grammar[lhs].forEach(prod => {
@@ -330,11 +339,11 @@ function eliminateUseless(grammar) {
         }
 
         explanation = `<b>Phase 1: Generating Symbols</b><br>`;
-        explanation += `- Generating variables: [ ${generatingArr.join(', ') || 'None'} ]<br>`;
+        explanation += `- Generating variables: [ ${Array.from(generating).join(', ') || 'None'} ]<br>`;
         explanation += `- Non-generating variables: [ ${nonGeneratingArr.join(', ') || 'None'} ]<br><br>`;
         
         explanation += `<b>Phase 2: Reachable Symbols</b><br>`;
-        explanation += `- Reachable variables: [ ${reachableArr.join(', ') || 'None'} ]<br>`;
+        explanation += `- Reachable variables: [ ${Array.from(reachable).join(', ') || 'None'} ]<br>`;
         explanation += `- Non-reachable variables: [ ${nonReachableArr.join(', ') || 'None'} ]<br><br>`;
 
         if (removedUselessProds.length > 0) {
